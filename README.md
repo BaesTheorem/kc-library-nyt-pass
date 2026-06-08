@@ -29,9 +29,31 @@ the browser.
 
 - `manifest.json` — MV3 manifest, scopes host permissions to the EZproxy and
   NYT domains only.
-- `background.js` — service worker; toolbar click handler.
-- `content-ezproxy.js` — runs on the EZproxy login page, fills the form.
+- `background.js` — service worker; toolbar click handler plus the lockout
+  safeguards (cooldown, failure/success tracking, toolbar badge).
+- `content-ezproxy.js` — runs on the EZproxy login page, fills the form once,
+  and refuses to resubmit rejected credentials.
 - `options.html` / `options.js` — credential entry form.
+
+## Lockout safeguards
+
+EZproxy has its own intruder protection: too many failed logins and it drops the
+connection (`ERR_EMPTY_RESPONSE`) for your card or IP for a long cooldown. To
+make that impossible to trigger, the extension throttles itself:
+
+- **One submit per tab.** The content script auto-submits at most once per tab,
+  so a reloaded login page never resubmits in a loop.
+- **No resubmitting rejected credentials.** If the library rejects the saved
+  card/PIN, the extension fingerprints them and refuses to send the same values
+  again until you change them in options.
+- **Self-imposed cooldown.** After failures it pauses auto-login for 30 minutes
+  (state persists across tabs, clicks, and restarts), well below EZproxy's own
+  threshold, so it backs off before EZproxy does. An empty-response from the
+  server triggers this immediately.
+- **Auto-reset on success.** Reaching NYT clears the counters; re-saving your
+  credentials in options clears every block for a fresh attempt.
+- **Toolbar badge.** A red `!` on the icon means auto-login is paused; hover the
+  icon for the reason (rejected credentials vs. cooldown, with minutes left).
 
 ## Troubleshooting
 

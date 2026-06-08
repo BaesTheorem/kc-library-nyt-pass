@@ -14,6 +14,9 @@ document.getElementById("save").addEventListener("click", async () => {
     libraryCard: cardEl.value.trim(),
     libraryPin: pinEl.value.trim(),
   });
+  // Re-entering credentials clears any failure/cooldown/rejection block so the
+  // corrected card/PIN get a fresh attempt.
+  chrome.runtime.sendMessage({ type: "creds-updated" });
   statusEl.textContent = "Saved.";
   setTimeout(() => (statusEl.textContent = ""), 2000);
 });
