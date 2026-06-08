@@ -12,7 +12,7 @@ chrome.storage.local.get(["libraryCard", "libraryPin"]).then(
 document.getElementById("save").addEventListener("click", async () => {
   await chrome.storage.local.set({
     libraryCard: cardEl.value.trim(),
-    libraryPin: pinEl.value,
+    libraryPin: pinEl.value.trim(),
   });
   statusEl.textContent = "Saved.";
   setTimeout(() => (statusEl.textContent = ""), 2000);

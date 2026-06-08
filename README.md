@@ -33,6 +33,20 @@ the browser.
 - `content-ezproxy.js` — runs on the EZproxy login page, fills the form.
 - `options.html` / `options.js` — credential entry form.
 
+## Troubleshooting
+
+**Stuck in a login loop / "card or PIN incorrect" even though the credentials
+work on the library site.** The content script auto-submits once per tab and
+then stops — it will not keep resubmitting rejected credentials (each retry is a
+failed login attempt that can temporarily lock the card). If the saved card/PIN
+are rejected:
+
+1. Open the extension's options page (right-click the toolbar icon → Options).
+2. Re-enter the card number and PIN. Both are trimmed on save, but re-type
+   rather than paste to avoid a hidden trailing space — that whitespace is the
+   usual reason a login that works when typed by hand fails here.
+3. Click the toolbar icon again to retry. The loop guard resets per browser tab.
+
 ## Customizing for a different library
 
 Change `REDEEM_URL` in `background.js` and the `host_permissions` /
