@@ -43,13 +43,12 @@ make that impossible to trigger, the extension throttles itself:
 
 - **One submit per tab.** The content script auto-submits at most once per tab,
   so a reloaded login page never resubmits in a loop.
-- **No resubmitting rejected credentials.** If the library rejects the saved
-  card/PIN, the extension fingerprints them and refuses to send the same values
-  again until you change them in options.
-- **Self-imposed cooldown.** After failures it pauses auto-login for 30 minutes
-  (state persists across tabs, clicks, and restarts), well below EZproxy's own
-  threshold, so it backs off before EZproxy does. An empty-response from the
-  server triggers this immediately.
+- **Self-imposed cooldown.** Every failed attempt counts — whether the library
+  rejected the card/PIN or the server dropped the connection. After a couple of
+  failures it pauses auto-login for 30 minutes (state persists across tabs,
+  clicks, and restarts), well below EZproxy's own threshold, so it backs off
+  before EZproxy does. The toolbar-click handler won't even open a login attempt
+  while paused.
 - **Auto-reset on success.** Reaching NYT clears the counters; re-saving your
   credentials in options clears every block for a fresh attempt.
 - **Toolbar badge.** A red `!` on the icon means auto-login is paused; hover the

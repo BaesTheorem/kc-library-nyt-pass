@@ -24,7 +24,6 @@ const DEFAULT_STATE = {
   failCount: 0,
   lastFailAt: 0,
   cooldownUntil: 0,
-  rejectedSig: "",
   redeemTabId: null,
 };
 
@@ -49,7 +48,10 @@ const isNytHost = (url) =>
   /(^|\.)nytimes\.com$/.test(hostOf(url)) || /-nytimes-com\./.test(hostOf(url));
 const isEzproxyBase = (url) => hostOf(url) === "kclibrary.idm.oclc.org";
 
-async function recordNetworkFailure(reason) {
+// Count any failed login attempt (credentials rejected or the server dropping
+// the connection). After MAX_FAILS we pause auto-login to stay clear of
+// EZproxy's intruder lockout.
+async function recordFailure(reason) {
   const s = await getState();
   const failCount = s.failCount + 1;
   const patch = { failCount, lastFailAt: Date.now() };
@@ -58,8 +60,9 @@ async function recordNetworkFailure(reason) {
   setBadge("!");
   chrome.action.setTitle({
     title: patch.cooldownUntil
-      ? `NYT pass paused ${Math.round(COOLDOWN_MS / 60000)} min — the library server ` +
-        `dropped the connection (${reason}). This avoids locking your card.`
+      ? `NYT pass paused ${Math.round(COOLDOWN_MS / 60000)} min after repeated login ` +
+        `failures (${reason}). This avoids locking your card; re-check your card/PIN ` +
+        `in options.`
       : `NYT pass: login failed (${reason}). One more failure pauses auto-login.`,
   });
 }
@@ -101,23 +104,14 @@ chrome.action.onClicked.addListener(async () => {
   await chrome.storage.local.set({ redeemTabId: tab.id });
 });
 
-// The content script reports a credential rejection (the EZproxy login page
-// showed an error). Remember which credentials failed so we never resubmit them.
 chrome.runtime.onMessage.addListener((msg) => {
-  if (msg?.type === "login-rejected" && msg.sig) {
-    chrome.storage.local.set({ rejectedSig: msg.sig });
-    setBadge("!");
-    chrome.action.setTitle({
-      title: "NYT pass: the saved card/PIN were rejected. Re-enter them in options.",
-    });
+  if (msg?.type === "login-failed") {
+    // The EZproxy login page showed an error (card/PIN rejected). Count it
+    // toward the cooldown like any other failure.
+    recordFailure("card/PIN rejected");
   } else if (msg?.type === "creds-updated") {
-    // New credentials saved — clear every block and start fresh.
-    chrome.storage.local.set({
-      failCount: 0,
-      lastFailAt: 0,
-      cooldownUntil: 0,
-      rejectedSig: "",
-    });
+    // New credentials saved — clear the failure counters for a fresh attempt.
+    chrome.storage.local.set({ failCount: 0, lastFailAt: 0, cooldownUntil: 0 });
     setBadge("");
     chrome.action.setTitle({ title: "Redeem NYT pass" });
   }
@@ -131,7 +125,7 @@ chrome.webNavigation.onErrorOccurred.addListener(async (details) => {
   const s = await getState();
   if (details.tabId !== s.redeemTabId) return;
   if (!isEzproxyBase(details.url)) return;
-  await recordNetworkFailure((details.error || "").replace(/^net::/, ""));
+  await recordFailure((details.error || "").replace(/^net::/, ""));
 });
 
 // The tab reached NYT — redemption worked. Clear the failure counters.
