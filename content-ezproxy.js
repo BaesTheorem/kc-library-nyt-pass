@@ -5,21 +5,20 @@
   const pageText = (document.body?.innerText || "").toLowerCase();
   const loginRejected = /incorrect|invalid|not recognized|unable|failed/.test(pageText);
 
-  const store = await chrome.storage.local.get([
+  const { libraryCard, libraryPin } = await chrome.storage.local.get([
     "libraryCard",
     "libraryPin",
-    "cooldownUntil",
   ]);
-  const { libraryCard, libraryPin } = store;
 
-  // This is the page EZproxy re-renders after a failed login. Report it so the
-  // background counts it toward the cooldown, and STOP — don't resubmit.
+  // This is the page EZproxy re-renders after a failed login. Tell the
+  // background to disable auto-login for the session, then leave the form so the
+  // user can sign in manually. Never resubmit.
   if (loginRejected && libraryCard && libraryPin) {
     chrome.runtime.sendMessage({ type: "login-failed" });
     console.warn(
-      `${TAG} The library rejected the saved card/PIN. Auto-login stopped. Open ` +
-        `the extension options and re-enter your card number and PIN (watch for a ` +
-        `stray space).`,
+      `${TAG} The library rejected the saved card/PIN. Auto-login is now off for ` +
+        `this session — sign in manually here, and re-enter your card/PIN in the ` +
+        `extension options to re-enable it.`,
     );
     return;
   }
@@ -29,12 +28,13 @@
   // Per-tab guard: auto-submit at most once per tab, even across reloads.
   if (sessionStorage.getItem(ATTEMPT_KEY)) return;
 
-  // Honor the self-imposed cooldown the background sets after repeated failures.
-  if (store.cooldownUntil && Date.now() < store.cooldownUntil) {
+  // Respect the session-level disable set after any failed attempt. When off,
+  // leave the form untouched so the user can sign in manually.
+  const resp = await chrome.runtime.sendMessage({ type: "auto-login-allowed" });
+  if (!resp || !resp.allowed) {
     console.warn(
-      `${TAG} Auto-login is paused after recent failures to avoid locking the ` +
-        `card. It clears on its own, or sooner if you re-enter your credentials ` +
-        `in the options page.`,
+      `${TAG} Auto-login is disabled for this session. Sign in manually, or ` +
+        `re-enter your card/PIN in options to re-enable it.`,
     );
     return;
   }

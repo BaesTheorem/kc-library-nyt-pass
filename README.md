@@ -39,20 +39,23 @@ the browser.
 
 EZproxy has its own intruder protection: too many failed logins and it drops the
 connection (`ERR_EMPTY_RESPONSE`) for your card or IP for a long cooldown. To
-make that impossible to trigger, the extension throttles itself:
+make that impossible to trigger, auto-login is a one-shot that backs off and
+hands control back to you:
 
 - **One submit per tab.** The content script auto-submits at most once per tab,
   so a reloaded login page never resubmits in a loop.
-- **Self-imposed cooldown.** Every failed attempt counts — whether the library
-  rejected the card/PIN or the server dropped the connection. After a couple of
-  failures it pauses auto-login for 30 minutes (state persists across tabs,
-  clicks, and restarts), well below EZproxy's own threshold, so it backs off
-  before EZproxy does. The toolbar-click handler won't even open a login attempt
-  while paused.
-- **Auto-reset on success.** Reaching NYT clears the counters; re-saving your
-  credentials in options clears every block for a fresh attempt.
-- **Toolbar badge.** A red `!` on the icon means auto-login is paused; hover the
-  icon for the reason (rejected credentials vs. cooldown, with minutes left).
+- **Any failure disables auto-login for the session.** A rejected card/PIN
+  (detected on the page) or a dropped connection (detected in the background)
+  switches auto-fill off for the rest of the browser session. The flag lives in
+  `chrome.storage.session`, so it survives service-worker restarts and clears
+  when the browser closes.
+- **Manual sign-in always works.** The toolbar icon always opens the login page.
+  When auto-login is disabled the form is simply left untouched, so you can type
+  your card/PIN and click through yourself.
+- **Re-enable by re-saving credentials.** Entering your card/PIN in options
+  turns auto-login back on for a fresh attempt.
+- **Toolbar badge.** A red `!` on the icon means auto-login is disabled for the
+  session; hover the icon for the reason.
 
 ## Troubleshooting
 

@@ -14,8 +14,8 @@ document.getElementById("save").addEventListener("click", async () => {
     libraryCard: cardEl.value.trim(),
     libraryPin: pinEl.value.trim(),
   });
-  // Re-entering credentials clears any failure/cooldown/rejection block so the
-  // corrected card/PIN get a fresh attempt.
+  // Re-entering credentials re-enables auto-login (it disables itself for the
+  // session after a failed attempt) so the corrected card/PIN get a fresh try.
   chrome.runtime.sendMessage({ type: "creds-updated" });
   statusEl.textContent = "Saved.";
   setTimeout(() => (statusEl.textContent = ""), 2000);
