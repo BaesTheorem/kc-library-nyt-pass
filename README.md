@@ -9,7 +9,7 @@ that form, then NYT signs you in via your existing Google session.
 
 1. Visit `chrome://extensions`, enable **Developer mode**, click **Load
    unpacked**, and select this directory.
-2. Click the extension's toolbar icon — the options page opens.
+2. Click the extension's toolbar icon and the options page opens.
 3. Enter your library card number and PIN. Click **Save**.
 4. Click the toolbar icon again to redeem.
 
@@ -27,13 +27,13 @@ the browser.
 
 ## Files
 
-- `manifest.json` — MV3 manifest, scopes host permissions to the EZproxy and
+- `manifest.json`: MV3 manifest, scopes host permissions to the EZproxy and
   NYT domains only.
-- `background.js` — service worker; toolbar click handler plus the lockout
+- `background.js`: service worker; toolbar click handler plus the lockout
   safeguards (cooldown, failure/success tracking, toolbar badge).
-- `content-ezproxy.js` — runs on the EZproxy login page, fills the form once,
+- `content-ezproxy.js`: runs on the EZproxy login page, fills the form once,
   and refuses to resubmit rejected credentials.
-- `options.html` / `options.js` — credential entry form.
+- `options.html` / `options.js`: credential entry form.
 
 ## Lockout safeguards
 
@@ -50,7 +50,7 @@ hands control back to you:
   `chrome.storage.session`, so it survives service-worker restarts and clears
   when the browser closes.
 - **Manual sign-in always works.** The toolbar icon always opens the login page.
-  When auto-login is disabled the form is simply left untouched, so you can type
+  When auto-login is disabled the form is left untouched, so you can type
   your card/PIN and click through yourself.
 - **Re-enable by re-saving credentials.** Entering your card/PIN in options
   turns auto-login back on for a fresh attempt.
@@ -61,13 +61,13 @@ hands control back to you:
 
 **Stuck in a login loop / "card or PIN incorrect" even though the credentials
 work on the library site.** The content script auto-submits once per tab and
-then stops — it will not keep resubmitting rejected credentials (each retry is a
+then stops. It will not keep resubmitting rejected credentials (each retry is a
 failed login attempt that can temporarily lock the card). If the saved card/PIN
 are rejected:
 
 1. Open the extension's options page (right-click the toolbar icon → Options).
 2. Re-enter the card number and PIN. Both are trimmed on save, but re-type
-   rather than paste to avoid a hidden trailing space — that whitespace is the
+   rather than paste to avoid a hidden trailing space, because that whitespace is the
    usual reason a login that works when typed by hand fails here.
 3. Click the toolbar icon again to retry. The loop guard resets per browser tab.
 
